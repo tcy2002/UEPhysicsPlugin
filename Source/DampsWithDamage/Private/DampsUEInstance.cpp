@@ -9,14 +9,21 @@ UDampsUEInstance::UDampsUEInstance()
 {
 	// create DampsWorldSim instance
 	m_pDampsWorldSim = MakeShared<DampsWorldSim>();
+
+    // Load default material
+    static ConstructorHelpers::FObjectFinder<UMaterial> MaterialFinder(TEXT("/Engine/BasicShapes/BasicShapeMaterial"));
+    if (MaterialFinder.Succeeded())
+    {
+        m_pDefaultMaterial = (UMaterial*)MaterialFinder.Object;
+    }
 }
 
 void UDampsUEInstance::Initialize(FSubsystemCollectionBase& Collection)
 {
     m_pDampsWorldSim->OnGetBreakableObjects.BindLambda([this](pe::Array<int>& breakableIds) {
-        for (AActor* actor : m_BreakableActors) {
-            if (m_pActorToWorld.find(actor) != m_pActorToWorld.end()) {
-                breakableIds.push_back(m_pActorToWorld[actor]);
+        for (auto& actor : m_BreakableActors) {
+            if (m_pActorToWorld.find(actor.first) != m_pActorToWorld.end()) {
+                breakableIds.push_back(m_pActorToWorld[actor.first]);
             }
         }
     });
@@ -31,7 +38,7 @@ void UDampsUEInstance::Deinitialize()
     m_pDampsWorldSim->OnAddConvexMeshObject.Unbind();
     m_pDampsWorldSim->OnRemoveObject.Unbind();
     m_pDampsWorldSim->reset();
-    m_BreakableActors.Empty();
+    m_BreakableActors.clear();
     m_pActorToWorld.clear();
 }
 
@@ -99,7 +106,6 @@ void UDampsUEInstance::RegisterConvexMeshObject(AActor* pActor, const FTransform
         pe_phys_fracture::FractureDataManager fdm;
         fdm.import_from_mesh(mesh);
         fdm.export_to_mesh(mesh);
-        pe::Mesh::saveToObj("D:\\UEProjects\\PhysicsWithDamage\\Plugins\\DampsWithDamage\\Source\\DampsWithDamage\\Private\\ue_components\\test.obj", mesh, pe::Vector3::ones());
 
         int sim_id = m_pDampsWorldSim->AddConvexMeshObject(mesh, dTransform, mass, friction, restitution, isStatic);
         m_pActorToWorld[pActor] = sim_id;
@@ -156,7 +162,7 @@ void UDampsUEInstance::MarkObjectAsBreakable(AActor* pActor, float threshold)
     if (m_pDampsWorldSim && pActor)
     {
         UE_LOG(LogTemp, Warning, TEXT("InstanceMarkObjectAsBreakable"));
-        m_BreakableActors.Add(pActor);
+        m_BreakableActors[pActor] = threshold;
     }
 }
 
@@ -164,7 +170,7 @@ void UDampsUEInstance::MarkObjectAsUnbreakable(AActor* pActor)
 {
     if (m_pDampsWorldSim && pActor)
     {
-        m_BreakableActors.Remove(pActor);
+        m_BreakableActors.erase(pActor);
     }
 }
 
@@ -201,11 +207,15 @@ void UDampsUEInstance::AddNewObject(int id, const pe::Mesh& mesh, const pe::Tran
     // Note: Scale is not handled here, assuming uniform scale of 1
     
     // Add a new actor
+    // Todo: Custom Material
     AActor* newActor = GetWorld()->SpawnActor<AActor>(AActor::StaticClass(), transform);
     UProceduralMeshComponent* procMeshComp = NewObject<UProceduralMeshComponent>(newActor);
     if (procMeshComp) {
         procMeshComp->CreateMeshSection(0, vertices, indices, TArray<FVector>(), TArray<FVector2D>(), TArray<FColor>(), TArray<FProcMeshTangent>(), false);
         procMeshComp->SetMobility(EComponentMobility::Movable);
+        if (m_pDefaultMaterial) {
+            procMeshComp->SetMaterial(0, m_pDefaultMaterial);
+        }
         newActor->SetRootComponent(procMeshComp);
         procMeshComp->RegisterComponent();
     }
@@ -234,8 +244,8 @@ void UDampsUEInstance::RemoveObject(int id) {
             break;
         }
     }
-    if (m_BreakableActors.Contains(foundActor)) {
-        m_BreakableActors.Remove(foundActor);
+    if (m_BreakableActors.find(foundActor) != m_BreakableActors.end()) {
+        m_BreakableActors.erase(foundActor);
     }
     foundActor->Destroy();
 }

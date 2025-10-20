@@ -22,6 +22,7 @@ namespace pe_phys_fracture {
         virtual ~SimpleFractureSolver() { delete _voronoi;}
 
         PE_API virtual void solve(const pe::Array<FractureSource>& sources) override;
+        PE_API virtual void reset() override;
     };
 
 } // namespace pe_phys_fracture

@@ -84,8 +84,9 @@ namespace pe_phys_fracture {
         convexMesh->setMeshPath(obj_path);
         convexMesh->setScale(pe::Vector3::ones());
         const pe::Vector3 offset = convexMesh->setMesh(mesh);
+        const pe::Transform offsetTrans(pe::Matrix3::identity(), offset);
         rb->setCollisionShape(convexMesh);
-        rb->setTransform(pe::Transform(trans.getBasis(), trans.getOrigin() + offset));
+        rb->setTransform(pe::Transform(trans * offsetTrans));
         rb->setMass(convexMesh->getVolume());
         rb->setFrictionCoeff(0.3);
         rb->setRestitutionCoeff(0.8);

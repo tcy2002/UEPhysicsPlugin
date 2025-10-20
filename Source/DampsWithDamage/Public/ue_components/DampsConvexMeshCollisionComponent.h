@@ -1,30 +1,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DampsCollisionComponent.h"
 #include "DampsConvexMeshCollisionComponent.generated.h"
 
-class UDampsUEInstance;
-
 UCLASS(ClassGroup=(Custom), meta = (BlueprintSpawnableComponent))
-class UDampsConvexMeshCollisionComponent : public UActorComponent
+class UDampsConvexMeshCollisionComponent : public UDampsCollisionComponent
 {
 	GENERATED_BODY()
 
 public:
-	UDampsConvexMeshCollisionComponent();
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	UDampsConvexMeshCollisionComponent() = default;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float Mass = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0"))
-    float Friction = 0.5f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0"))
-    float Restitution = 0.5f;
-
 	UPROPERTY()
 	TArray<FVector> vertices;
 
@@ -32,12 +19,9 @@ public:
 	TArray<int32> indices;
 
 private:
-	void RegisterObjectToDamps();
-    void UnregisterObjectFromDamps();
-	void ShowCollisionMesh();
-	void InitCollisionInfo();
-
-    bool bShouldRegister = true;
-
-    friend class UDampsUEInstance;
+	virtual void RegisterObjectToDamps(AActor* Owner, UDampsUEInstance* DampsInstance) override;
+	virtual void UnregisterObjectFromDamps(AActor* Owner, UDampsUEInstance* DampsInstance) override;
+	virtual void ShowCollisionMesh(AActor* Owner) override;
+	virtual void InitCollisionInfo(UStaticMeshComponent* smc) override;
+	virtual void InitCollisionInfo(UProceduralMeshComponent* pmc) override;
 };

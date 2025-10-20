@@ -22,6 +22,7 @@ namespace pe_phys_fracture  {
         uint32_t point_count() const { return _manager.vertex_count(); }
         pe::Vector3 get_point(uint32_t idx) { return _manager.get_vertex(idx).pos; }
         pe::Array<uint32_t> get_adjacent_points(uint32_t idx) { return _adjacency_list[idx].to_vector(); }
+        void reset() { _adjacency_list.clear(); _manager.clear(); }
     };
 
 } // namespace pe_phys_fracture

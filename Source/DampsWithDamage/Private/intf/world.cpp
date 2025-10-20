@@ -189,7 +189,7 @@ namespace pe_intf {
                         _collision_objects.push_back(frag);
                     }
                     _collision_objects.erase(_collision_objects.begin() + i--);
-                    _fracture_solver->clearFragments();
+                    _fracture_solver->reset();
                 }
             }
         }

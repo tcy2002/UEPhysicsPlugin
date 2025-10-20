@@ -157,4 +157,9 @@ namespace pe_phys_fracture {
         }
     }
 
+    void SimpleFractureSolver::reset() {
+        _voronoi->reset();
+        _result.clear();
+    }
+
 } // namespace pe_phys_fracture

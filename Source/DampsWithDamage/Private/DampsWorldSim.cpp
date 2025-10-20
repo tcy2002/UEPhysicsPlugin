@@ -13,57 +13,58 @@ DampsWorldSim::DampsWorldSim()
 
 void DampsWorldSim::update(pe::Real dt)
 {
-    pe::Array<int> breakableIds;
-    if (OnGetBreakableObjects.IsBound()) {
-        OnGetBreakableObjects.Execute(breakableIds);
-    }
-    // First, check the breakable list
-    for (auto& b : breakableIds) {
-        UE_LOG(LogTemp, Warning, TEXT("SolveFracturableBody: %d, %f"), b);
-        pe_phys_object::RigidBody* pRigidBody = mRigidBodies[b];
-        static pe_phys_object::FracturableObject fracturableObj;
-        fracturableObj.setCollisionShape(pRigidBody->getCollisionShape());
-        fracturableObj.setThreshold(pe::Real(1.0));
-        fracturableObj.setTransform(pRigidBody->getTransform());
+    // First, check whether there are fracture sources to process
+    if (!mFractureSources.empty()) {
+        pe::Array<int> breakableIds;
+        if (OnGetBreakableObjects.IsBound()) {
+            OnGetBreakableObjects.Execute(breakableIds);
+        }
+        
+        for (auto& b : breakableIds) {
+            UE_LOG(LogTemp, Warning, TEXT("SolveFracturableBody: %d, %f"), b);
+            pe_phys_object::RigidBody* pRigidBody = mRigidBodies[b];
+            static pe_phys_object::FracturableObject fracturableObj;
+            fracturableObj.setCollisionShape(pRigidBody->getCollisionShape());
+            fracturableObj.setThreshold(pe::Real(1.0));
+            fracturableObj.setTransform(pRigidBody->getTransform());
 
-        mFractureSolver.setFracturableObject(&fracturableObj);
-        mFractureSolver.solve(mFractureSources);
+            mFractureSolver.reset();
+            mFractureSolver.setFracturableObject(&fracturableObj);
+            mFractureSolver.solve(mFractureSources);
 
-        if (!mFractureSolver.getFragments().empty()) {
-            UE_LOG(LogTemp, Warning, TEXT("FragmentsGenerated: %ld"), mFractureSolver.getFragments().size());
-            for (auto* frag : mFractureSolver.getFragments()) {
-                mWorld.addRigidBody(frag);
-                mRigidBodies[frag->getGlobalId()] = frag;
-                mRelocVecs[frag->getGlobalId()] = pe::Vector3::zeros();
-                
-                // Notify the addition of a new convex mesh object
-                if (OnAddConvexMeshObject.IsBound()) {
-                    UE_LOG(LogTemp, Warning, TEXT("SaveFragmentObj: %d"), frag->getGlobalId());
-                    pe_phys_shape::ConvexMeshShape* pShape = static_cast<pe_phys_shape::ConvexMeshShape*>(frag->getCollisionShape());
-                    const pe::Mesh& mesh = pShape->getMesh();
-                    std::string name = "D:\\UEProjects\\PhysicsWithDamage\\Plugins\\DampsWithDamage\\Source\\DampsWithDamage\\Private\\ue_components\\fracture\\frag-" + std::to_string(frag->getGlobalId()) + ".obj";
-                    pe::Mesh::saveToObj(name, mesh, pe::Vector3::ones());
-                    OnAddConvexMeshObject.Execute((int)frag->getGlobalId(), mesh, frag->getTransform(), frag->getMass(), frag->getFrictionCoeff(), frag->getRestitutionCoeff(), frag->isKinematic());
+            if (mFractureSolver.getFragments().size() > 1) {
+                UE_LOG(LogTemp, Warning, TEXT("FragmentsGenerated: %ld"), mFractureSolver.getFragments().size());
+                for (auto* frag : mFractureSolver.getFragments()) {
+                    mWorld.addRigidBody(frag);
+                    mRigidBodies[frag->getGlobalId()] = frag;
+                    mRelocVecs[frag->getGlobalId()] = pe::Vector3::zeros();
+
+                    // Notify the addition of a new convex mesh object
+                    if (OnAddConvexMeshObject.IsBound()) {
+                        pe_phys_shape::ConvexMeshShape* pShape = static_cast<pe_phys_shape::ConvexMeshShape*>(frag->getCollisionShape());
+                        const pe::Mesh& mesh = pShape->getMesh();
+                        OnAddConvexMeshObject.Execute((int)frag->getGlobalId(), mesh, frag->getTransform(), frag->getMass(), frag->getFrictionCoeff(), frag->getRestitutionCoeff(), frag->isKinematic());
+                    }
+                }
+
+                // Remove the original rigid body
+                if (OnRemoveObject.IsBound()) {
+                    mWorld.removeRigidBody(pRigidBody);
+                    uint32 id = pRigidBody->getGlobalId();
+                    delete pRigidBody->getCollisionShape();
+                    delete pRigidBody;
+                    mRigidBodies.erase(b);
+                    mRelocVecs.erase(b);
+
+                    // Notify the removal
+                    OnRemoveObject.Execute(id);
                 }
             }
-
-            // Remove the original rigid body
-            if (OnRemoveObject.IsBound()) {
-                mWorld.removeRigidBody(pRigidBody);
-                uint32 id = pRigidBody->getGlobalId();
-                delete pRigidBody->getCollisionShape();
-                delete pRigidBody;
-                mRigidBodies.erase(b);
-                mRelocVecs.erase(b);
-
-                // Notify the removal
-                OnRemoveObject.Execute(id);
-            }
         }
-    }
 
-    // No matter whether fracture happened, clear the fracture sources for the next step
-    mFractureSources.clear();
+        // No matter whether fracture happened, clear the fracture sources for the next step
+        mFractureSources.clear();
+    }
 
 	// Update the rigid world with the given time step
 	mWorld.setDt(dt);
