@@ -21,12 +21,12 @@ namespace pe_phys_fracture {
     protected:
         pe::Array<pe_phys_object::RigidBody*> _result;
 
-        static pe::Vector3 randomSpherePoints(pe::Real radius);
-        static pe::Vector3 randomCylinderPoints(pe::Real radius, pe::Real height);
-        static pe_phys_object::RigidBody* addMesh(pe::Mesh& mesh, const pe::Transform& trans, const std::string& obj_path);
+        static pe::Vector3 randomRangeSpherePoints(pe::Real radiusMin, pe::Real radiusMax);
+        static pe::Vector3 randomRangeCylinderPoints(pe::Real radius, pe::Real heightMin, pe::Real heightMax);
+        static pe_phys_object::RigidBody* addMesh(pe::Mesh& mesh, bool inside, const pe::Transform& trans, const std::string& obj_path);
 
         bool generatePoints(const pe::Array<FractureSource>& sources,
-                            pe::Array<pe::Vector3>& points, pe::Array<pe::Vector3>& forces);
+                            pe::Array<pe::KV<pe::Vector3, bool>>& points, pe::Array<pe::Vector3>& forces);
 
     public:
         FractureSolver() {}

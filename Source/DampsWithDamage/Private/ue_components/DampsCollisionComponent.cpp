@@ -42,8 +42,10 @@ void UDampsCollisionComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    // Optionally visualize the collision mesh
-	ShowCollisionMesh_Internal();
+    if (bShowCollisionMesh) {
+        // Optionally visualize the collision mesh
+        ShowCollisionMesh_Internal();
+    }
 }
 
 void UDampsCollisionComponent::RegisterObjectToDamps_Internal()

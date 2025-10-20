@@ -36,6 +36,16 @@ void DampsWorldSim::update(pe::Real dt)
                 UE_LOG(LogTemp, Warning, TEXT("FragmentsGenerated: %ld"), mFractureSolver.getFragments().size());
                 for (auto* frag : mFractureSolver.getFragments()) {
                     mWorld.addRigidBody(frag);
+
+                    // if the parent is kinematic, we can also have kinematic fragments
+                    if (pRigidBody->isKinematic()) {
+                        // do nothing, because kinematic was set in the solver
+                    }
+                    // if not, all fragments are dynamic
+                    else {
+                        frag->setKinematic(false);
+                    }
+
                     mRigidBodies[frag->getGlobalId()] = frag;
                     mRelocVecs[frag->getGlobalId()] = pe::Vector3::zeros();
 

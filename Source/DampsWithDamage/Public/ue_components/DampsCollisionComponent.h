@@ -26,6 +26,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0"))
     float Restitution = 0.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object")
+    bool bShowCollisionMesh = true;
+
 private:
 	void RegisterObjectToDamps_Internal();
     void UnregisterObjectFromDamps_Internal();

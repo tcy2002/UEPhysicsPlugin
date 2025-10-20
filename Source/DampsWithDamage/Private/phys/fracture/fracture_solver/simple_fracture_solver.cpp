@@ -5,7 +5,7 @@
 // style-checked
 namespace pe_phys_fracture {
 
-    void SimpleFractureSolver::cut_mesh(const pe::Mesh& mesh, pe::Array<pe::Mesh>& new_meshes) {
+    void SimpleFractureSolver::cut_mesh(const pe::Mesh& mesh, pe::Array<pe::KV<pe::Mesh, bool>>& new_meshes) {
         const uint32_t point_count = _voronoi->point_count();
         FractureDataManager worker;
         worker.import_from_mesh(mesh);
@@ -15,19 +15,24 @@ namespace pe_phys_fracture {
             FractureDataManager result;
             cut_one_mesh(worker, i, result);
             new_meshes.emplace_back();
-            result.export_to_mesh(new_meshes.back());
+            bool inside = false;
+            pe::Vector3 point;
+            _voronoi->get_point(i, inside);
+            new_meshes.back().second = inside;
+            result.export_to_mesh(new_meshes.back().first);
         }
     }
 
     void SimpleFractureSolver::cut_one_mesh(const FractureDataManager &mesh, uint32_t idx,
                                             FractureDataManager &new_mesh) {
-        const auto point = _voronoi->get_point(idx);
+        bool inside = false;
+        const auto point = _voronoi->get_point(idx, inside);
         const auto adjacent_point_ids = _voronoi->get_adjacent_points(idx);
 
         // cut the mesh by each adjacent point
         new_mesh = mesh;
         for (const auto other_id : adjacent_point_ids) {
-            auto other = _voronoi->get_point(other_id);
+            auto other = _voronoi->get_point(other_id, inside);
             auto center = (point + other) / 2;
             auto normal = (other - point).normalized();
             FractureDataManager result;
@@ -123,7 +128,7 @@ namespace pe_phys_fracture {
         if (_fracturable_object == nullptr || sources.empty()) return;
 
         // generate points
-        pe::Array<pe::Vector3> points;
+        pe::Array<pe::KV<pe::Vector3, bool>> points;
         pe::Array<pe::Vector3> forces;
         UE_LOG(LogTemp, Warning, TEXT("FractureSourceCount: %ld"), sources.size());
         if (!generatePoints(sources, points, forces)) return;
@@ -141,14 +146,14 @@ namespace pe_phys_fracture {
         const pe::Transform world_trans = _fracturable_object->getTransform();
 
         // generate new rigidbodies
-        pe::Array<pe::Mesh> fragments;
+        pe::Array<pe::KV<pe::Mesh, bool>> fragments;
         _voronoi->triangulate(points);
         cut_mesh(mesh, fragments);
         UE_LOG(LogTemp, Warning, TEXT("FragmentMeshGenerated: %ld"), fragments.size());
         for (int i = 0; i < I(fragments.size()); i++) {
-            if (!fragments[i].empty()) {
+            if (!fragments[i].first.empty()) {
                 auto filename = "fragment-" + std::to_string(i) + ".obj";
-                auto rb = addMesh(fragments[i], world_trans, filename);
+                auto rb = addMesh(fragments[i].first, fragments[i].second, world_trans, filename);
                 pe::Vector3 vel = rb->getLinearVelocity();
                 vel += forces[i] / rb->getMass();
                 rb->setLinearVelocity(vel);

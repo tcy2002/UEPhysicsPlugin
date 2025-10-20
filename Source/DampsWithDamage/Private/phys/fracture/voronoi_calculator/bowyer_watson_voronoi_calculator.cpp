@@ -2,13 +2,13 @@
 
 namespace pe_phys_fracture {
 
-    void BowyerWatsonVoronoiCalculator::add_bounding_box(const pe::Array<pe::Vector3>& points) {
+    void BowyerWatsonVoronoiCalculator::add_bounding_box(const pe::Array<pe::KV<pe::Vector3, bool>>& points) {
         // find aabb bounds
         pe::Vector3 _min(PE_REAL_MAX, PE_REAL_MAX, PE_REAL_MAX);
         pe::Vector3 _max(PE_REAL_MIN, PE_REAL_MIN, PE_REAL_MIN);
         for (auto& p : points) {
-            _min = pe::Vector3::min2(_min, p);
-            _max = pe::Vector3::max2(_max, p);
+            _min = pe::Vector3::min2(_min, p.first);
+            _max = pe::Vector3::max2(_max, p.first);
         }
 
         // dilate to include all possible points
@@ -51,7 +51,7 @@ namespace pe_phys_fracture {
         }
     }
 
-    void BowyerWatsonVoronoiCalculator::generate(const pe::Array<pe::Vector3>& points) {
+    void BowyerWatsonVoronoiCalculator::generate(const pe::Array<pe::KV<pe::Vector3, bool>>& points) {
         // generate triangle mesh for all points, using Bowyer-Watson algorithm
         for (auto& point : points) {
             // find all tetrahedrons that don't cater to the Delaunay condition
@@ -59,7 +59,7 @@ namespace pe_phys_fracture {
             const uint32_t tet_count = _manager.tetrahedron_count();
             for (uint32_t i = 0; i < tet_count; i++) {
                 auto tet = _manager.get_tetrahedron(i);
-                if (is_point_inside_sphere(point, tet.center, tet.radius)) {
+                if (is_point_inside_sphere(point.first, tet.center, tet.radius)) {
                     bad_tetrahedrons.push_back(i);
                 }
             }
@@ -81,7 +81,7 @@ namespace pe_phys_fracture {
             }
 
             // add new vertices, triangles and tetrahedrons
-            const auto vi = _manager.add_vertex(point);
+            const auto vi = _manager.add_vertex(point.first);
             for (const auto tri_id : good_triangles) {
                 const auto tri = _manager.get_triangle(tri_id);
                 const auto tri_id1 = _manager.add_triangle(vi, tri.vert_ids[0], tri.vert_ids[1]);
@@ -101,10 +101,12 @@ namespace pe_phys_fracture {
             for (uint32_t i = UI(bad_triangles.size()) - 1; i != -1; i--) {
                 _manager.remove_triangle(bad_triangles[i]);
             }
+
+            _inside_flags.push_back(point.second);
         }
     }
 
-    void BowyerWatsonVoronoiCalculator::triangulate(const pe::Array<pe::Vector3>& points) {
+    void BowyerWatsonVoronoiCalculator::triangulate(const pe::Array<pe::KV<pe::Vector3, bool>>& points) {
         _manager.clear();
         _adjacency_list.clear();
         add_bounding_box(points);

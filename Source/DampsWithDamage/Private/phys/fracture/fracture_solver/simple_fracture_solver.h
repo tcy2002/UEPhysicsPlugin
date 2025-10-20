@@ -9,7 +9,7 @@ namespace pe_phys_fracture {
     protected:
         VoronoiCalculator* _voronoi;
 
-        void cut_mesh(const pe::Mesh& mesh, pe::Array<pe::Mesh>& new_meshes);
+        void cut_mesh(const pe::Mesh& mesh, pe::Array<pe::KV<pe::Mesh, bool>>& new_meshes);
         void cut_one_mesh(const FractureDataManager& mesh, uint32_t idx, FractureDataManager& new_mesh);
         static void cut_mesh_by_plane(FractureDataManager& old_mesh, const pe::Vector3& p, const pe::Vector3& n,
                                       FractureDataManager& new_mesh);

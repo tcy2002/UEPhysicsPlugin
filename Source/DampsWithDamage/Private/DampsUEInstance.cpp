@@ -228,6 +228,7 @@ void UDampsUEInstance::AddNewObject(int id, const pe::Mesh& mesh, const pe::Tran
         collisionComp->Mass = mass;
         collisionComp->Friction = fric;
         collisionComp->Restitution = rest;
+        collisionComp->bShowCollisionMesh = false;
         m_pActorToWorld[newActor] = id;
         collisionComp->RegisterComponent();
     }
