@@ -4,3 +4,6 @@ Build/
 
 .vs/
 .idea/
+
+*.doc
+*.docx
