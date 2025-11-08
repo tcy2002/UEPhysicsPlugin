@@ -109,29 +109,23 @@ Quaternion<Scalar> Quaternion<Scalar>::normalized() const {
 }
 
 template <typename Scalar>
-Quaternion<Scalar> Quaternion<Scalar>::inverse() const {
-    Scalar norm_sq = w * w + x * x + y * y + z * z;
-    if (norm_sq != 0) {
-        return { w / norm_sq, -x / norm_sq, -y / norm_sq, -z / norm_sq };
+void Quaternion<Scalar>::invert() {
+    Scalar n = w * w + x * x + y * y + z * z;
+    if (n != 0) {
+        w = w / n;
+        x = -x / n;
+        y = -y / n;
+        z = -z / n;
     }
-    return { 1., 0., 0., 0. };
 }
 
 template <typename Scalar>
-void Quaternion<Scalar>::invert() {
-    Scalar norm_sq = w * w + x * x + y * y + z * z;
-    if (norm_sq != 0) {
-        w /= norm_sq;
-        x = -x / norm_sq;
-        y = -y / norm_sq;
-        z = -z / norm_sq;
+Quaternion<Scalar> Quaternion<Scalar>::inverse() const {
+    Scalar n = w * w + x * x + y * y + z * z;
+    if (n != 0) {
+        return { w / n, -x / n, -y / n, -z / n };
     }
-    else {
-        w = 1.;
-        x = 0.;
-        y = 0.;
-        z = 0.;
-    }
+    return { 1., 0., 0., 0. };
 }
 
 template <typename Scalar>

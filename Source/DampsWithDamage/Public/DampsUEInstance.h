@@ -45,6 +45,6 @@ private:
 	std::map<AActor*, float> m_BreakableActors;
     UMaterial* m_pDefaultMaterial = nullptr;
 
-	void AddNewObject(int id, const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fric, const pe::Real& rest, bool isKinematic);
+	void AddNewObject(bool flag, int id, const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fric, const pe::Real& rest, bool isKinematic);
 	void RemoveObject(int id);
 };

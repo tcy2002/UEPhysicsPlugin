@@ -159,7 +159,7 @@ Vector3<Scalar> Matrix3x3<Scalar>::operator*(const Vector3<Scalar>& vec) const {
 
 template <typename Scalar>
 Vector3<Scalar> Matrix3x3<Scalar>::getColumn(int axis) const {
-    return { _m[0][axis], _m[1][axis], _m[2][axis] };
+    return {_m[0][axis], _m[1][axis], _m[2][axis]};
 }
 
 template <typename Scalar>

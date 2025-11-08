@@ -1,14 +1,14 @@
 #include "DampsWorldSim.h"
-#include "phys/shape/convex_mesh_shape.h"
-#include "phys/shape/box_shape.h"
-#include "phys/shape/sphere_shape.h"
+#include "physics/shape/convex_mesh_shape.h"
+#include "physics/shape/box_shape.h"
+#include "physics/shape/sphere_shape.h"
 
 DampsWorldSim::DampsWorldSim() 
 {
     mWorld.setGravity(pe::Vector3(0, pe::Real(-9.8), 0));
     mWorld.setSleepLinVel2Threshold(pe::Real(0.01));
-    mWorld.setSleepAngVel2Threshold(pe::Real(0.01));
-    mWorld.setSleepTimeThreshold(pe::Real(1.0));
+    mWorld.setSleepAngVel2Threshold(pe::Real(0.005));
+    mWorld.setSleepTimeThreshold(pe::Real(2.0));
 }
 
 void DampsWorldSim::update(pe::Real dt)
@@ -16,14 +16,17 @@ void DampsWorldSim::update(pe::Real dt)
     // First, check whether there are fracture sources to process
     if (!mFractureSources.empty()) {
         pe::Array<int> breakableIds;
+        pe::Array<bool> flags;
         if (OnGetBreakableObjects.IsBound()) {
-            OnGetBreakableObjects.Execute(breakableIds);
+            OnGetBreakableObjects.Execute(breakableIds, flags);
         }
         
-        for (auto& b : breakableIds) {
-            UE_LOG(LogTemp, Warning, TEXT("SolveFracturableBody: %d, %f"), b);
-            pe_phys_object::RigidBody* pRigidBody = mRigidBodies[b];
-            static pe_phys_object::FracturableObject fracturableObj;
+        for (int i = 0; i < PE_I(breakableIds.size()); i++) {
+            auto b = breakableIds[i];
+            auto f = flags[i];
+            UE_LOG(LogTemp, Warning, TEXT("SolveFracturableBody: %d"), b);
+            pe_physics_object::RigidBody* pRigidBody = mRigidBodies[b];
+            static pe_physics_object::FracturableObject fracturableObj;
             fracturableObj.setCollisionShape(pRigidBody->getCollisionShape());
             fracturableObj.setThreshold(pe::Real(1.0));
             fracturableObj.setTransform(pRigidBody->getTransform());
@@ -36,7 +39,8 @@ void DampsWorldSim::update(pe::Real dt)
                 UE_LOG(LogTemp, Warning, TEXT("FragmentsGenerated: %ld"), mFractureSolver.getFragments().size());
                 for (auto* frag : mFractureSolver.getFragments()) {
                     mWorld.addRigidBody(frag);
-
+                    UE_LOG(LogTemp, Warning, TEXT("FragmentsGenerated: %ld"), frag->getGlobalId());
+                    
                     // if the parent is kinematic, we can also have kinematic fragments
                     if (pRigidBody->isKinematic()) {
                         // do nothing, because kinematic was set in the solver
@@ -51,9 +55,9 @@ void DampsWorldSim::update(pe::Real dt)
 
                     // Notify the addition of a new convex mesh object
                     if (OnAddConvexMeshObject.IsBound()) {
-                        pe_phys_shape::ConvexMeshShape* pShape = static_cast<pe_phys_shape::ConvexMeshShape*>(frag->getCollisionShape());
+                        pe_physics_shape::ConvexMeshShape* pShape = static_cast<pe_physics_shape::ConvexMeshShape*>(frag->getCollisionShape());
                         const pe::Mesh& mesh = pShape->getMesh();
-                        OnAddConvexMeshObject.Execute((int)frag->getGlobalId(), mesh, frag->getTransform(), frag->getMass(), frag->getFrictionCoeff(), frag->getRestitutionCoeff(), frag->isKinematic());
+                        OnAddConvexMeshObject.Execute(f, (int)frag->getGlobalId(), mesh, frag->getTransform(), frag->getMass(), frag->getFrictionCoeff(), frag->getRestitutionCoeff(), frag->isKinematic());
                     }
                 }
 
@@ -90,9 +94,9 @@ void DampsWorldSim::reset()
 
 int DampsWorldSim::AddConvexMeshObject(const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic)
 {
-    auto shape = new pe_phys_shape::ConvexMeshShape();
+    auto shape = new pe_physics_shape::ConvexMeshShape();
 	pe::Vector3 reloc = shape->setMesh(mesh);
-    pe_phys_object::RigidBody* pRigidBody = new pe_phys_object::RigidBody();
+    pe_physics_object::RigidBody* pRigidBody = new pe_physics_object::RigidBody();
     pRigidBody->setCollisionShape(shape);
     pRigidBody->setTransform(pe::Transform(trans.getBasis(), trans.getOrigin() + reloc));
     pRigidBody->setMass(mass);
@@ -107,9 +111,9 @@ int DampsWorldSim::AddConvexMeshObject(const pe::Mesh& mesh, const pe::Transform
 
 int DampsWorldSim::AddBoxObject(const pe::Vector3& extents, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic)
 {
-    auto shape = new pe_phys_shape::BoxShape(extents);
+    auto shape = new pe_physics_shape::BoxShape(extents);
     pe::Vector3 reloc = pe::Vector3::zeros();
-    pe_phys_object::RigidBody* pRigidBody = new pe_phys_object::RigidBody();
+    pe_physics_object::RigidBody* pRigidBody = new pe_physics_object::RigidBody();
     pRigidBody->setCollisionShape(shape);
     pRigidBody->setTransform(trans);
     pRigidBody->setMass(mass);
@@ -124,9 +128,9 @@ int DampsWorldSim::AddBoxObject(const pe::Vector3& extents, const pe::Transform&
 
 int DampsWorldSim::AddSphereObject(const pe::Real& radius, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic)
 {
-    auto shape = new pe_phys_shape::SphereShape(radius);
+    auto shape = new pe_physics_shape::SphereShape(radius);
     pe::Vector3 reloc = pe::Vector3::zeros();
-    pe_phys_object::RigidBody* pRigidBody = new pe_phys_object::RigidBody();
+    pe_physics_object::RigidBody* pRigidBody = new pe_physics_object::RigidBody();
     pRigidBody->setCollisionShape(shape);
     pRigidBody->setTransform(trans);
     pRigidBody->setMass(mass);
@@ -175,8 +179,8 @@ pe::Transform DampsWorldSim::GetObjectTransform(int id) const {
     if (mRigidBodies.find(id) == mRigidBodies.end()) {
         return pe::Transform::identity();
     }
-
     pe::Transform transformed = mRigidBodies.at(id)->getTransform() * pe::Transform(pe::Matrix3::identity(), -mRelocVecs.at(id));
+    const auto& trans = mRigidBodies.at(id)->getTransform();
     return transformed;
 }
 
@@ -188,21 +192,21 @@ void DampsWorldSim::SetObjectKinematic(int id, bool isKinematic) {
 }
 
 void DampsWorldSim::AddFractureSource(const std::string& type, const pe::Vector3& position, const pe::Vector3& intensity) {
-    UE_LOG(LogTemp, Warning, TEXT("AddFractureSource: %s, %f %f %f | %f %f %f"), *FString(type.c_str()), position.x, position.y, position.y, intensity.x, intensity.y, intensity.z);
-    pe_phys_fracture::FractureSource source;
+    UE_LOG(LogTemp, Warning, TEXT("AddFractureSource: %s, %f %f %f | %f %f %f"), *FString(type.c_str()), position.x, position.y, position.z, intensity.x, intensity.y, intensity.z);
+    pe_physics_fracture::FractureSource source;
     std::string type_lower = type;
     for (auto& c : type_lower) {
         c = std::tolower(c);
     }
     if (type_lower == "sphere") {
-        source.type = pe_phys_fracture::FractureType::Sphere;
+        source.type = pe_physics_fracture::FractureType::Sphere;
     }
     else if (type_lower == "cylinder") {
-        source.type = pe_phys_fracture::FractureType::Cylinder;
+        source.type = pe_physics_fracture::FractureType::Cylinder;
     }
     else {
         UE_LOG(LogTemp, Error, TEXT("DampsWorldSim::AddFractureSource: Unknown fracture source type '%s', defaulting to 'sphere'."), *FString(type.c_str()));
-        source.type = pe_phys_fracture::FractureType::Sphere;
+        source.type = pe_physics_fracture::FractureType::Sphere;
     }
     source.position = position;
     source.intensity = intensity;

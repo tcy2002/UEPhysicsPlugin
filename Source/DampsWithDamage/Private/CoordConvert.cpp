@@ -36,14 +36,12 @@ FQuat CoordConvert::DampsQuatToFQuat(const pe::Quaternion& dQuat)
 {
     pe::Quaternion dConvertedQuat = DampsToFConvertQuat * dQuat * DampsToFConvertQuatInverse;
     return FQuat(-dConvertedQuat.x, dConvertedQuat.y, -dConvertedQuat.z, dConvertedQuat.w);
-    //return FQuat(dQuat.x, dQuat.z, dQuat.y, dQuat.w);
 }
 
 pe::Quaternion CoordConvert::FQuatToDampsQuat(const FQuat& fQuat)
 {
     pe::Quaternion dQuat(fQuat.W, -fQuat.X, fQuat.Y, -fQuat.Z);
     return FToDampsConvertQuat * dQuat * FToDampsConvertQuatInverse;
-    //return pe::Quaternion(fQuat.W, fQuat.X, fQuat.Z, fQuat.Y);
 }
 
 FVector CoordConvert::DampsVector3ToAbsFVector(const pe::Vector3& dVec, const bool& zoom)

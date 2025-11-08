@@ -67,7 +67,7 @@ Vector3<Scalar>& Vector3<Scalar>::operator/=(Scalar r) {
 
 template <typename Scalar>
 Scalar Vector3<Scalar>::norm() const {
-    return sqrt(x * x + y * y + z * z);
+    return std::sqrt(std::max(x * x + y * y + z * z, 1e-15));
 }
 
 template <typename Scalar>
@@ -77,12 +77,19 @@ Scalar Vector3<Scalar>::norm2() const {
 
 template <typename Scalar>
 Vector3<Scalar> Vector3<Scalar>::normalized() const {
-    return *this / norm();
+    Scalar n = norm();
+    if (n < 1e-15) {
+        return *this;
+    }
+    return *this / n;
 }
 
 template <typename Scalar>
 void Vector3<Scalar>::normalize() {
-    *this /= norm();
+    Scalar n = norm();
+    if (n >= 1e-6) {
+        *this /= n;
+    }
 }
 
 template <typename Scalar>

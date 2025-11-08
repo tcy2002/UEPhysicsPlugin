@@ -12,6 +12,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0"))
     float BreakThreshold = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object")
+    bool bShowCollisionMeshAfterBreak = true;
+
 public:
 	UDampsBreakableComponent();
 	virtual void BeginPlay() override;

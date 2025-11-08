@@ -30,8 +30,8 @@ namespace common {
 
         COMMON_FORCE_INLINE void normalize();
         COMMON_FORCE_INLINE Quaternion normalized() const;
-        COMMON_FORCE_INLINE Quaternion inverse() const;
         COMMON_FORCE_INLINE void invert();
+        COMMON_FORCE_INLINE Quaternion inverse() const;
         COMMON_FORCE_INLINE Matrix3x3<Scalar> toRotationMatrix() const;
         COMMON_FORCE_INLINE static Quaternion fromRotationMatrix(const Matrix3x3<Scalar>& m);
         COMMON_FORCE_INLINE Vector3<Scalar> toEulerXYZ() const;

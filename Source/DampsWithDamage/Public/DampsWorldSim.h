@@ -1,11 +1,11 @@
 #pragma once
 
-#include "phys/phys_general.h"
-#include "intf/world.h"
-#include "phys/fracture/fracture_solver/simple_fracture_solver.h"
+#include "CoreMinimal.h"
+#include "interface/world.h"
+#include "physics/fracture/fracture_solver/simple_fracture_solver.h"
 
-DECLARE_DELEGATE_OneParam(FOnGetBreakableObjects, pe::Array<int>&);
-DECLARE_DELEGATE_SevenParams(FOnAddConvexMeshObjectCallback, int, const pe::Mesh&, const pe::Transform&, const pe::Real&, const pe::Real&, const pe::Real&, bool);
+DECLARE_DELEGATE_TwoParams(FOnGetBreakableObjects, pe::Array<int>&, pe::Array<bool>&);
+DECLARE_DELEGATE_EightParams(FOnAddConvexMeshObjectCallback, bool, int, const pe::Mesh&, const pe::Transform&, const pe::Real&, const pe::Real&, const pe::Real&, bool);
 DECLARE_DELEGATE_OneParam(FOnRemoveObjectCallback, int);
 
 /// <summary>
@@ -41,11 +41,11 @@ public:
     FOnRemoveObjectCallback OnRemoveObject;
 
 private:
-    pe_intf::World mWorld; // the physics world
-    pe_phys_fracture::SimpleFractureSolver mFractureSolver; // fracture solver
+    pe_interface::World mWorld; // the physics world
+    pe_physics_fracture::SimpleFractureSolver mFractureSolver; // fracture solver
 
-    pe::Map<int, pe_phys_object::RigidBody*> mRigidBodies; // map from global ID to rigid body pointer
+    pe::Map<int, pe_physics_object::RigidBody*> mRigidBodies; // map from global ID to rigid body pointer
     pe::Map<int, pe::Vector3> mRelocVecs; // relocation vectors for each object
     
-    pe::Array<pe_phys_fracture::FractureSource> mFractureSources; // fracture sources
+    pe::Array<pe_physics_fracture::FractureSource> mFractureSources; // fracture sources
 };

@@ -1,9 +1,10 @@
 #include "DampsUEInstance.h"
 #include "CoordConvert.h"
 #include "Kismet/GameplayStatics.h"
-#include "phys/fracture/fracture_utils/fracture_data_manager.h"
+#include "physics/fracture/fracture_utils/fracture_data_manager.h"
 #include "ProceduralMeshComponent.h"
 #include "ue_components/DampsConvexMeshCollisionComponent.h"
+#include "ue_components/DampsBreakableComponent.h"
 
 UDampsUEInstance::UDampsUEInstance()
 {
@@ -20,10 +21,13 @@ UDampsUEInstance::UDampsUEInstance()
 
 void UDampsUEInstance::Initialize(FSubsystemCollectionBase& Collection)
 {
-    m_pDampsWorldSim->OnGetBreakableObjects.BindLambda([this](pe::Array<int>& breakableIds) {
+    m_pDampsWorldSim->OnGetBreakableObjects.BindLambda([this](pe::Array<int>& breakableIds, pe::Array<bool>& flags) {
         for (auto& actor : m_BreakableActors) {
             if (m_pActorToWorld.find(actor.first) != m_pActorToWorld.end()) {
-                breakableIds.push_back(m_pActorToWorld[actor.first]);
+                if (UDampsBreakableComponent* pDampsBreakable = actor.first->FindComponentByClass<UDampsBreakableComponent>()) {
+                    breakableIds.push_back(m_pActorToWorld[actor.first]);
+                    flags.push_back(pDampsBreakable->bShowCollisionMeshAfterBreak);
+                }
             }
         }
     });
@@ -55,7 +59,7 @@ void UDampsUEInstance::Tick(float DeltaTime)
 	{
         float step = DeltaTime;
         while (step > 0.0001f) {
-            float dt = FMath::Min(step, 0.01f); // Max step size of 20 ms
+            float dt = FMath::Min(step, 0.01f); // Max step size of 10 ms
             m_pDampsWorldSim->update(dt);
             step -= dt;
         }
@@ -88,7 +92,7 @@ void UDampsUEInstance::RegisterConvexMeshObject(AActor* pActor, const FTransform
         for (const FVector& vertex : vertices)
         {
             pe::Mesh::Vertex v;
-            FVector scaledVertex = vertex * transform.GetScale3D();
+            const FVector scaledVertex = vertex * transform.GetScale3D();
             v.position = CoordConvert::FVectorToDampsVector3(scaledVertex, true);
             v.normal = pe::Vector3::zeros();
             mesh.vertices.push_back(v);
@@ -103,7 +107,7 @@ void UDampsUEInstance::RegisterConvexMeshObject(AActor* pActor, const FTransform
             mesh.faces.push_back(f);
 		}
         pe::Mesh::perVertexNormal(mesh); // Important
-        pe_phys_fracture::FractureDataManager fdm;
+        pe_physics_fracture::FractureDataManager fdm;
         fdm.import_from_mesh(mesh);
         fdm.export_to_mesh(mesh);
 
@@ -185,7 +189,7 @@ void UDampsUEInstance::AddFractureSource(const FString& type, const FVector& pos
     }
 }
 
-void UDampsUEInstance::AddNewObject(int id, const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fric, const pe::Real& rest, bool isKinematic) {
+void UDampsUEInstance::AddNewObject(bool flag, int id, const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fric, const pe::Real& rest, bool isKinematic) {
     TArray<FVector> vertices;
     TArray<int32> indices;
     for (const auto& v : mesh.vertices) {
@@ -203,7 +207,7 @@ void UDampsUEInstance::AddNewObject(int id, const pe::Mesh& mesh, const pe::Tran
     FTransform transform;
     transform.SetLocation(CoordConvert::DampsVector3ToFVector(trans.getOrigin(), true));
     transform.SetRotation(CoordConvert::DampsQuatToFQuat(pe::Quaternion(trans.getBasis())));
-   
+    
     // Note: Scale is not handled here, assuming uniform scale of 1
     
     // Add a new actor
@@ -228,7 +232,7 @@ void UDampsUEInstance::AddNewObject(int id, const pe::Mesh& mesh, const pe::Tran
         collisionComp->Mass = mass;
         collisionComp->Friction = fric;
         collisionComp->Restitution = rest;
-        collisionComp->bShowCollisionMesh = false;
+        collisionComp->bShowCollisionMesh = flag;
         m_pActorToWorld[newActor] = id;
         collisionComp->RegisterComponent();
     }

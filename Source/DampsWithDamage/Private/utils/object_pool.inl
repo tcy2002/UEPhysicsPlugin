@@ -1,3 +1,5 @@
+#pragma once
+
 template <typename T, size_t BlockSize>
 void* ObjectPool<T, BlockSize>::aligned_malloc(size_t size, int align) {
     const int pointer_size = sizeof(void*);

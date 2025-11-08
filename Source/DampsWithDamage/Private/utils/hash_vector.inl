@@ -1,3 +1,5 @@
+#pragma once
+
 template <typename T, typename HashFunc, typename EqualFunc>
 bool hash_vector<T, HashFunc, EqualFunc>::push_back(const T& item) {
     uint32_t hash = (uint32_t)hash_func(item);

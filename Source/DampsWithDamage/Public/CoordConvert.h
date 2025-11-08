@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "phys/phys_general.h"
+#include "physics/physics.h"
 #include "CoreMinimal.h"
 
 /*

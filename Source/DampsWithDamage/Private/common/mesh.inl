@@ -48,7 +48,7 @@ void Mesh<Scalar>::loadFromObj(const std::string &filename, Mesh<Scalar> &mesh, 
         if (str == "v") {
             Scalar x, y, z;
             ss >> x >> y >> z;
-            mesh.vertices.push_back({{x * size.x, y * size.y, z * size.z}, {0, 0, 0}});
+            mesh.vertices.push_back({{x * size.x, y * size.x, z * size.x}, {0, 0, 0}});
         }
         else if (str == "f") {
             std::string vert;
@@ -71,13 +71,12 @@ void Mesh<Scalar>::saveToObj(const std::string &filename, const Mesh<Scalar> &me
     std::ofstream ofs(filename);
     for (auto& vert : mesh.vertices) {
         ofs << "v " << vert.position.x * size.x << " " << vert.position.y * size.y << " " << vert.position.z * size.z << "\n";
-        //ofs << "vn " << vert.normal.x << " " << vert.normal.y << " " << vert.normal.z << "\n";
+        ofs << "vn " << vert.normal.x << " " << vert.normal.y << " " << vert.normal.z << "\n";
     }
     for (auto& face: mesh.faces) {
         ofs << "f ";
         for (auto i : face.indices) {
-            //ofs << i + 1 << "//" << i + 1 << " ";
-            ofs << i + 1 << " ";
+            ofs << i + 1 << "//" << i + 1 << " ";
         }
         ofs << "\n";
     }
