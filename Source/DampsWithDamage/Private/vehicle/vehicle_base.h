@@ -52,7 +52,7 @@ protected:
 
 public:
     VehicleBase(): _wheel_region_length(PE_R(2.0)), _wheel_region_width(PE_R(2.0)), _wheel_width(PE_R(1.2)), _wheel_count_per_side(2),
-                   _gear(0), _throttle(PE_R(0.0)), _brake(false) {}
+                   _gear(0), _throttle(PE_R(0.0)), _brake(PE_R(0.0)) {}
     virtual ~VehicleBase();
 
     void setWheelInfo(int index, AxleType type, bool motor, pe::Real radius, pe::Real mass, pe::Real friction, pe::Real anchor_offset_y, 
@@ -67,6 +67,8 @@ public:
     virtual pe::Transform getTransform() const;
 
     virtual void loadConfigFromJson(const nlohmann::json& j) {}
+
+    pe::Transform getWheelTransform(int index) const;
 };
 
 } // namespace pe_vehicle

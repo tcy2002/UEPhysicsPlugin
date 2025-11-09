@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "DampsCollisionComponent.h"
@@ -12,7 +12,7 @@ class UDampsSphereCollisionComponent : public UDampsCollisionComponent
 public:
 	UDampsSphereCollisionComponent() = default;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0", DisplayName = "半径"))
 	float Radius = 0.0f;
 
 private:

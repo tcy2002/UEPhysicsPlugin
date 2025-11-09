@@ -2,18 +2,21 @@
 
 #include "CoreMinimal.h"
 #include "DampsCollisionComponent.h"
-#include "DampsCubeCollisionComponent.generated.h"
+#include "DampsCapsuleCollisionComponent.generated.h"
 
 UCLASS(ClassGroup=(Custom), meta = (BlueprintSpawnableComponent))
-class UDampsCubeCollisionComponent : public UDampsCollisionComponent
+class UDampsCapsuleCollisionComponent : public UDampsCollisionComponent
 {
 	GENERATED_BODY()
 
 public:
-	UDampsCubeCollisionComponent() = default;
+	UDampsCapsuleCollisionComponent() = default;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (DisplayName = "半尺寸"))
-	FVector HalfExtents = FVector::ZeroVector;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0", DisplayName = "半径"))
+	float Radius = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0", DisplayName = "高度（不包含半球部分）"))
+	float Height = 0.0f;
 
 private:
 	virtual void RegisterObjectToDamps(AActor* Owner, UDampsUEInstance* DampsInstance) override;

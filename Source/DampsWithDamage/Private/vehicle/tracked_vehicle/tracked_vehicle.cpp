@@ -193,10 +193,15 @@ void TrackedVehicle::step(pe::Real dt) {
         wheel->step(dt);
     }
     _brake = PE_MAX(_brake, PE_R(0.0));
-    for (auto& suspension : _suspensions) {
+    for (int i = 0; i < PE_I(_suspensions.size()); i++) {
+        auto suspension = _suspensions[i];
         if (_brake > PE_EPS) {
             const pe::Real current_speed = -suspension->getWheel()->getBody()->getAngularVelocity().dot(suspension->getWheel()->getTransform().getAxis(0));
             suspension->setTargetWheelSpeed(PE_MAX((PE_R(1.0) - _brake), PE_R(0.0)) * current_speed);
+        }
+        else if (_wheel_info[i].motor && (_gear == 0 || PE_ABS(_right_throttle) < PE_EPS || PE_ABS(_left_throttle) < PE_EPS)) {
+            const pe::Real current_speed = -suspension->getWheel()->getBody()->getAngularVelocity().dot(suspension->getWheel()->getTransform().getAxis(0));
+            suspension->setTargetWheelSpeed(PE_R(0.9) * current_speed);
         }
         else suspension->releaseTargetWheelSpeed();
         suspension->step(dt);
@@ -208,6 +213,21 @@ void TrackedVehicle::step(pe::Real dt) {
     if (_right_track) {
         _right_track->step(dt);
     }
+}
+
+pe::Transform TrackedVehicle::getTrackSegmentTransform(bool left, int index) const {
+    if (left) {
+        if (_left_track) {
+            return _left_track->getSegmentTransform(index);
+        }
+    }
+    else {
+        if (_right_track) {
+            return _right_track->getSegmentTransform(index);
+        }
+    }
+    static pe::Transform default_transform = pe::Transform::identity();
+    return default_transform;
 }
 
 } // namespace pe_vehicle

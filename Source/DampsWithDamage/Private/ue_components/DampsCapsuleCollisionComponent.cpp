@@ -1,10 +1,10 @@
-#include "ue_components/DampsCubeCollisionComponent.h"
+#include "ue_components/DampsCapsuleCollisionComponent.h"
 #include "DampsUEInstance.h"
 #include "DrawDebugHelpers.h"
 
-void UDampsCubeCollisionComponent::RegisterObjectToDamps(AActor* Owner, UDampsUEInstance* DampsInstance)
+void UDampsCapsuleCollisionComponent::RegisterObjectToDamps(AActor* Owner, UDampsUEInstance* DampsInstance)
 {
-    if (HalfExtents.X > 1e-5f && HalfExtents.Y > 1e-5f && HalfExtents.Z > 1e-5f)
+    if (Radius > 1e-5f && Height > 1e-5f)
     {
         FTransform transform = CollisionTransform * Owner->GetTransform();
         bool isStatic = Owner->GetRootComponent()->Mobility == EComponentMobility::Static ||
@@ -17,25 +17,26 @@ void UDampsCubeCollisionComponent::RegisterObjectToDamps(AActor* Owner, UDampsUE
             FixedDof.bFixedZRotation, // Note: Y and Z rotation are swapped
             FixedDof.bFixedYRotation
         };
-        DampsInstance->RegisterCubeObject(Owner, transform, HalfExtents, Mass, Friction, Restitution, fixedDof, isStatic);
+        DampsInstance->RegisterCapsuleObject(Owner, transform, Radius, Height, Mass, Friction, Restitution, fixedDof, isStatic);
     }
 }
 
-void UDampsCubeCollisionComponent::UnregisterObjectFromDamps(AActor* Owner, UDampsUEInstance* DampsInstance)
+void UDampsCapsuleCollisionComponent::UnregisterObjectFromDamps(AActor* Owner, UDampsUEInstance* DampsInstance)
 {
     DampsInstance->UnregisterObject(Owner);
 }
 
-void UDampsCubeCollisionComponent::ShowCollisionMesh(AActor* Owner) {
+void UDampsCapsuleCollisionComponent::ShowCollisionMesh(AActor* Owner) {
     // This function is implemented to visualize the collision mesh
     FTransform Transform = CollisionTransform * Owner->GetActorTransform();
     FVector Center = Transform.GetTranslation();
-    FVector Extents = HalfExtents * Transform.GetScale3D();
+    float CRadius = Radius * Transform.GetScale3D().GetMax();
+    float CHeight = Height * Transform.GetScale3D().GetMax();
     FQuat Rotation = Transform.GetRotation();
-    DrawDebugBox(GetWorld(), Center, Extents, Rotation, FColor::Green, false, -1.f, 0, 2.f);
+    DrawDebugCapsule(GetWorld(), Center, CHeight * 0.5f + CRadius, CRadius, Rotation, FColor::Green, false, -1.f, 0, 2.f);
 }
 
-void UDampsCubeCollisionComponent::InitCollisionInfo(UStaticMeshComponent* smc)
+void UDampsCapsuleCollisionComponent::InitCollisionInfo(UStaticMeshComponent* smc)
 {
     if (UStaticMesh* sm = smc->GetStaticMesh()) {
         if (sm->GetNumLODs() > 0) {
@@ -53,13 +54,14 @@ void UDampsCubeCollisionComponent::InitCollisionInfo(UStaticMeshComponent* smc)
                 MaxExtents.Y = FMath::Max(MaxExtents.Y, VertexPosition.Y);
                 MaxExtents.Z = FMath::Max(MaxExtents.Z, VertexPosition.Z);
             }
-            HalfExtents = (MaxExtents - MinExtents) * 0.5f;
+            Radius = FMath::Max((MaxExtents.X - MinExtents.X) * 0.5f, (MaxExtents.Y - MinExtents.Y) * 0.5f);
+            Height = MaxExtents.Z - MinExtents.Z;
             CollisionTransform.SetLocation((MaxExtents + MinExtents) * 0.5f);
         }
     }
 }
 
-void UDampsCubeCollisionComponent::InitCollisionInfo(UProceduralMeshComponent* pmc)
+void UDampsCapsuleCollisionComponent::InitCollisionInfo(UProceduralMeshComponent* pmc)
 {
     const TArray<FProcMeshVertex>& ProcVertices = pmc->GetProcMeshSection(0)->ProcVertexBuffer;
     FVector MinExtents(FLT_MAX);
@@ -73,6 +75,7 @@ void UDampsCubeCollisionComponent::InitCollisionInfo(UProceduralMeshComponent* p
         MaxExtents.Y = FMath::Max(MaxExtents.Y, VertexPosition.Y);
         MaxExtents.Z = FMath::Max(MaxExtents.Z, VertexPosition.Z);
     }
-    HalfExtents = (MaxExtents - MinExtents) * 0.5f;
+    Radius = FMath::Max((MaxExtents.X - MinExtents.X) * 0.5f, (MaxExtents.Y - MinExtents.Y) * 0.5f);
+    Height = MaxExtents.Z - MinExtents.Z;
     CollisionTransform.SetLocation((MaxExtents + MinExtents) * 0.5f);
 }

@@ -28,6 +28,9 @@ public:
 	static FVector DampsVector3ToAbsFVector(const pe::Vector3& dVec, const bool& zoom = false);
 	static pe::Vector3 FVectorToDampsAbsVector3(const FVector& fVec, const bool& zoom = false);
 
+    static FTransform DampsTransformToFTransform(const pe::Transform& dTrans, const bool& zoom = false);
+    static pe::Transform FTransformToDampsTransform(const FTransform& fTrans, const bool& zoom = false);
+
 private:
 	static pe::Quaternion DampsToFConvertQuat;
 	static pe::Quaternion DampsToFConvertQuatInverse;

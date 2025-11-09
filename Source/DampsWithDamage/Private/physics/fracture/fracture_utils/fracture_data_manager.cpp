@@ -150,7 +150,7 @@ void FractureDataManager::import_from_mesh(const pe::Mesh &mesh) {
     int iter_count = 0;
     while (num != tri_count) {
         int k = 0;
-        //if (iter_count++ >= 1000) break;
+        if (iter_count++ >= 1000) break;
         for (auto& face : mesh.faces) {
             for (uint32_t i = 0; i < face.indices.size() - 2; i++) {
                 !tri_added[k] &&

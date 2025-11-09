@@ -2,6 +2,7 @@
 #include "physics/shape/convex_mesh_shape.h"
 #include "physics/shape/box_shape.h"
 #include "physics/shape/sphere_shape.h"
+#include "physics/shape/capsule_shape.h"
 
 DampsWorldSim::DampsWorldSim() 
 {
@@ -11,7 +12,7 @@ DampsWorldSim::DampsWorldSim()
     mWorld.setSleepTimeThreshold(pe::Real(2.0));
 }
 
-void DampsWorldSim::update(pe::Real dt)
+void DampsWorldSim::Update(pe::Real dt)
 {
     // First, check whether there are fracture sources to process
     if (!mFractureSources.empty()) {
@@ -83,16 +84,42 @@ void DampsWorldSim::update(pe::Real dt)
 	// Update the rigid world with the given time step
 	mWorld.setDt(dt);
 	mWorld.step();
+
+    // Step all tanks
+    for (auto& tank : mTanks) {
+        tank->step(dt);
+    }
 }
 
-void DampsWorldSim::reset()
+void DampsWorldSim::Reset()
 {
     mWorld.clearRigidBodies();
-    clearAllObjects();
+    ClearAllObjects();
+    ClearAllTanks();
     mFractureSources.clear();
 }
 
-int DampsWorldSim::AddConvexMeshObject(const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic)
+static pe_physics_constraint::SixDofConstraint* AddConstraint(pe_physics_object::RigidBody* pBodyA, pe_physics_object::RigidBody* pBodyB,
+    const pe::Transform& frameInA, const pe::Transform& frameInB, bool fixedDof[6])
+{
+    if (!fixedDof[0] && !fixedDof[1] && !fixedDof[2] && !fixedDof[3] && !fixedDof[4] && !fixedDof[5]) {
+        return nullptr; // No constraint needed
+    }
+    auto constraint = new pe_physics_constraint::SixDofConstraint();
+    constraint->setObjectA(pBodyA);
+    constraint->setObjectB(pBodyB);
+    constraint->setFrameA(frameInA);
+    constraint->setFrameB(frameInB);
+    constraint->setXPosFixed(fixedDof[0]);
+    constraint->setYPosFixed(fixedDof[1]);
+    constraint->setZPosFixed(fixedDof[2]);
+    constraint->setXRotFixed(fixedDof[3]);
+    constraint->setYRotFixed(fixedDof[4]);
+    constraint->setZRotFixed(fixedDof[5]);
+    return constraint;
+}
+
+int DampsWorldSim::AddConvexMeshObject(const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic)
 {
     auto shape = new pe_physics_shape::ConvexMeshShape();
 	pe::Vector3 reloc = shape->setMesh(mesh);
@@ -106,10 +133,13 @@ int DampsWorldSim::AddConvexMeshObject(const pe::Mesh& mesh, const pe::Transform
     mRigidBodies[pRigidBody->getGlobalId()] = pRigidBody;
     mRelocVecs[pRigidBody->getGlobalId()] = reloc;
     mWorld.addRigidBody(pRigidBody);
+    if (auto constraint = AddConstraint(nullptr, pRigidBody, pe::Transform::identity(), pe::Transform::identity(), fixedDof)) {
+        mWorld.addConstraint(constraint);
+    }
     return pRigidBody->getGlobalId();
 }
 
-int DampsWorldSim::AddBoxObject(const pe::Vector3& extents, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic)
+int DampsWorldSim::AddBoxObject(const pe::Vector3& extents, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic)
 {
     auto shape = new pe_physics_shape::BoxShape(extents);
     pe::Vector3 reloc = pe::Vector3::zeros();
@@ -123,10 +153,13 @@ int DampsWorldSim::AddBoxObject(const pe::Vector3& extents, const pe::Transform&
     mRigidBodies[pRigidBody->getGlobalId()] = pRigidBody;
     mRelocVecs[pRigidBody->getGlobalId()] = reloc;
     mWorld.addRigidBody(pRigidBody);
+    if (auto constraint = AddConstraint(nullptr, pRigidBody, pe::Transform::identity(), pe::Transform::identity(), fixedDof)) {
+        mWorld.addConstraint(constraint);
+    }
     return pRigidBody->getGlobalId();
 }
 
-int DampsWorldSim::AddSphereObject(const pe::Real& radius, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic)
+int DampsWorldSim::AddSphereObject(const pe::Real& radius, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic)
 {
     auto shape = new pe_physics_shape::SphereShape(radius);
     pe::Vector3 reloc = pe::Vector3::zeros();
@@ -140,6 +173,28 @@ int DampsWorldSim::AddSphereObject(const pe::Real& radius, const pe::Transform& 
     mRigidBodies[pRigidBody->getGlobalId()] = pRigidBody;
     mRelocVecs[pRigidBody->getGlobalId()] = reloc;
     mWorld.addRigidBody(pRigidBody);
+    if (auto constraint = AddConstraint(nullptr, pRigidBody, pe::Transform::identity(), pe::Transform::identity(), fixedDof)) {
+        mWorld.addConstraint(constraint);
+    }
+    return pRigidBody->getGlobalId();
+}
+
+int DampsWorldSim::AddCapsuleObject(const pe::Real& radius, const pe::Real& height, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic) {
+    auto shape = new pe_physics_shape::CapsuleShape(radius, height);
+    pe::Vector3 reloc = pe::Vector3::zeros();
+    pe_physics_object::RigidBody* pRigidBody = new pe_physics_object::RigidBody();
+    pRigidBody->setCollisionShape(shape);
+    pRigidBody->setTransform(trans);
+    pRigidBody->setMass(mass);
+    pRigidBody->setFrictionCoeff(fricCoeff);
+    pRigidBody->setRestitutionCoeff(restCoeff);
+    pRigidBody->setKinematic(isKinematic);
+    mRigidBodies[pRigidBody->getGlobalId()] = pRigidBody;
+    mRelocVecs[pRigidBody->getGlobalId()] = reloc;
+    mWorld.addRigidBody(pRigidBody);
+    if (auto constraint = AddConstraint(nullptr, pRigidBody, pe::Transform::identity(), pe::Transform::identity(), fixedDof)) {
+        mWorld.addConstraint(constraint);
+    }
     return pRigidBody->getGlobalId();
 }
 
@@ -156,7 +211,7 @@ bool DampsWorldSim::RemoveObject(int id) {
     return true;
 }
 
-void DampsWorldSim::clearAllObjects() {
+void DampsWorldSim::ClearAllObjects() {
     mWorld.clearRigidBodies();
     for (auto& kv : mRigidBodies) {
         delete kv.second->getCollisionShape();
@@ -164,6 +219,24 @@ void DampsWorldSim::clearAllObjects() {
     }
     mRigidBodies.clear();
     mRelocVecs.clear();
+}
+
+int DampsWorldSim::AddTank(pe_vehicle::TrackedVehicle* tank) {
+    tank->init(&mWorld);
+    mTanks.push_back(tank);
+    UE_LOG(LogTemp, Warning, TEXT("Added and Inited Tank to world"));
+    return PE_I(mTanks.size()) - 1;
+}
+
+void DampsWorldSim::RemoveTank(int id) {
+    if (id < 0 || id >= PE_I(mTanks.size())) {
+        return;
+    }
+    mTanks.erase(mTanks.begin() + id);
+}
+
+void DampsWorldSim::ClearAllTanks() {
+    mTanks.clear();
 }
 
 void DampsWorldSim::SetObjectTransform(int id, const pe::Transform& transform) {

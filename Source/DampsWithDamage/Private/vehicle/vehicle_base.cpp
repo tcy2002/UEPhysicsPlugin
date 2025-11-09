@@ -27,6 +27,7 @@ void VehicleBase::setWheelInfo(int index, AxleType type, bool motor, pe::Real ra
     _wheel_info[index].suspension_rest_length = suspension_rest_length;
     _wheel_info[index].suspension_stiffness = suspension_stiffness;
     _wheel_info[index].suspension_damping = suspension_damping;
+    UE_LOG(LogTemp, Warning, TEXT("Set Wheel Info: %d"), index);
 }
 
 void VehicleBase::setSteerAngle(int index, pe::Real angle) {
@@ -127,6 +128,15 @@ void VehicleBase::setTransform(const pe::Transform& trans) {
 pe::Transform VehicleBase::getTransform() const {
     if (!_chassis) return pe::Transform::identity();
     return _chassis->getTransform();
+}
+
+pe::Transform VehicleBase::getWheelTransform(int index) const {
+    if (index < 0 || index >= PE_I(_wheels.size())) {
+        //throw std::out_of_range("Invalid wheel index in VehicleBase::getWheelTransform: " + std::to_string(index));
+        UE_LOG(LogTemp, Warning, TEXT("Get Wheel Transform: %d"), index);
+        return pe::Transform::identity();
+    }
+    return _wheels[index]->getTransform();
 }
 
 } // namespace pe_vehicle

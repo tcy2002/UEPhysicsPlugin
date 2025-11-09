@@ -14,8 +14,6 @@ protected:
     Track* _right_track = nullptr;
 
 public:
-
-public:
     TrackedVehicle(): VehicleBase(), _left_throttle(PE_R(0.0)), _right_throttle(PE_R(0.0)) {}
     virtual ~TrackedVehicle();
 
@@ -23,7 +21,9 @@ public:
     virtual void step(pe::Real dt) override;
 
     virtual void loadConfigFromJson(const nlohmann::json& j) {}
+
+    int getTrackSegmentCount() const { return 30; }
+    pe::Transform getTrackSegmentTransform(bool left, int index) const;
 };
 
 } // namespace pe_vehicle
-

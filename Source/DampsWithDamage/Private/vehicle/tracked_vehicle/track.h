@@ -37,6 +37,8 @@ public:
     virtual void step(pe::Real dt);
 
     virtual void loadConfigFromJson(const nlohmann::json& j) {}
+
+    pe::Transform getSegmentTransform(int index) const;
 };
 
 } // namespace pe_vehicle

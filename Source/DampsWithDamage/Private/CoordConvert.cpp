@@ -54,3 +54,19 @@ pe::Vector3 CoordConvert::FVectorToDampsAbsVector3(const FVector& fVec, const bo
     const pe::Vector3 v = FVectorToDampsVector3(fVec, zoom);
     return pe::Vector3(PE_ABS(v.x), PE_ABS(v.y), PE_ABS(v.z));
 }
+
+FTransform CoordConvert::DampsTransformToFTransform(const pe::Transform& dTrans, const bool& zoom)
+{
+    FTransform fTrans;
+    fTrans.SetLocation(DampsVector3ToFVector(dTrans.getOrigin(), zoom));
+    fTrans.SetRotation(DampsQuatToFQuat(pe::Quaternion(dTrans.getBasis())));
+    return fTrans;
+}
+
+pe::Transform CoordConvert::FTransformToDampsTransform(const FTransform& fTrans, const bool& zoom)
+{
+    pe::Transform dTrans;
+    dTrans.setOrigin(FVectorToDampsVector3(fTrans.GetLocation(), zoom));
+    dTrans.setBasis(FQuatToDampsQuat(fTrans.GetRotation()).toRotationMatrix());
+    return dTrans;
+}

@@ -41,7 +41,7 @@ void UDampsUEInstance::Deinitialize()
     m_pDampsWorldSim->OnGetBreakableObjects.Unbind();
     m_pDampsWorldSim->OnAddConvexMeshObject.Unbind();
     m_pDampsWorldSim->OnRemoveObject.Unbind();
-    m_pDampsWorldSim->reset();
+    m_pDampsWorldSim->Reset();
     m_BreakableActors.clear();
     m_pActorToWorld.clear();
 }
@@ -57,11 +57,12 @@ void UDampsUEInstance::Tick(float DeltaTime)
 	// Update the Damps world simulation
 	if (m_pDampsWorldSim)
 	{
-        float step = DeltaTime;
-        while (step > 0.0001f) {
-            float dt = FMath::Min(step, 0.01f); // Max step size of 10 ms
-            m_pDampsWorldSim->update(dt);
-            step -= dt;
+        static float lastTimeLeft = 0.0f;
+        int steps = (lastTimeLeft + DeltaTime) / 0.01f;
+        lastTimeLeft = (lastTimeLeft + DeltaTime) - steps * 0.01f;
+        for (int i = 0; i < steps; i++)
+        {
+            m_pDampsWorldSim->Update(0.01f);
         }
 	}
 	
@@ -80,7 +81,8 @@ void UDampsUEInstance::Tick(float DeltaTime)
     UE_LOG(LogTemp, Log, TEXT("DampsUEInstance Tick: DeltaTime = %f"), DeltaTime);
 }
 
-void UDampsUEInstance::RegisterConvexMeshObject(AActor* pActor, const FTransform& transform, const TArray<FVector>& vertices, const TArray<int32>& indices, pe::Real mass, pe::Real friction, pe::Real restitution, bool isStatic)
+void UDampsUEInstance::RegisterConvexMeshObject(AActor* pActor, const FTransform& transform, const TArray<FVector>& vertices, const TArray<int32>& indices, 
+    pe::Real mass, pe::Real friction, pe::Real restitution, bool fixedDof[6], bool isStatic)
 {
 	if (m_pDampsWorldSim && pActor)
 	{
@@ -111,12 +113,13 @@ void UDampsUEInstance::RegisterConvexMeshObject(AActor* pActor, const FTransform
         fdm.import_from_mesh(mesh);
         fdm.export_to_mesh(mesh);
 
-        int sim_id = m_pDampsWorldSim->AddConvexMeshObject(mesh, dTransform, mass, friction, restitution, isStatic);
+        int sim_id = m_pDampsWorldSim->AddConvexMeshObject(mesh, dTransform, mass, friction, restitution, fixedDof, isStatic);
         m_pActorToWorld[pActor] = sim_id;
 	}
 }
 
-void UDampsUEInstance::RegisterCubeObject(AActor* pActor, const FTransform& transform, const FVector& halfExtents, pe::Real mass, pe::Real friction, pe::Real restitution, bool isStatic)
+void UDampsUEInstance::RegisterCubeObject(AActor* pActor, const FTransform& transform, const FVector& halfExtents, 
+    pe::Real mass, pe::Real friction, pe::Real restitution, bool fixedDof[6], bool isStatic)
 {
     if (m_pDampsWorldSim && pActor) 
     {
@@ -127,12 +130,13 @@ void UDampsUEInstance::RegisterCubeObject(AActor* pActor, const FTransform& tran
         FVector scaledHalfExtents = halfExtents * transform.GetScale3D();
         pe::Vector3 extents = CoordConvert::FVectorToDampsAbsVector3(scaledHalfExtents, true) * pe::Real(2.0);
 
-        int sim_id = m_pDampsWorldSim->AddBoxObject(extents, dTransform, mass, friction, restitution, isStatic);
+        int sim_id = m_pDampsWorldSim->AddBoxObject(extents, dTransform, mass, friction, restitution, fixedDof, isStatic);
         m_pActorToWorld[pActor] = sim_id;
     }
 }
 
-void UDampsUEInstance::RegisterSphereObject(AActor* pActor, const FTransform& transform, float radius, pe::Real mass, pe::Real friction, pe::Real restitution, bool isStatic)
+void UDampsUEInstance::RegisterSphereObject(AActor* pActor, const FTransform& transform, float radius, 
+    pe::Real mass, pe::Real friction, pe::Real restitution, bool fixedDof[6], bool isStatic)
 {
     if (m_pDampsWorldSim && pActor)
     {
@@ -143,7 +147,26 @@ void UDampsUEInstance::RegisterSphereObject(AActor* pActor, const FTransform& tr
         float scaledRadius = radius * transform.GetScale3D().GetMax(); // Use the maximum scale component
         scaledRadius *= pe::Real(0.01);
 
-        int sim_id = m_pDampsWorldSim->AddSphereObject(scaledRadius, dTransform, mass, friction, restitution, isStatic);
+        int sim_id = m_pDampsWorldSim->AddSphereObject(scaledRadius, dTransform, mass, friction, restitution, fixedDof, isStatic);
+        m_pActorToWorld[pActor] = sim_id;
+    }
+}
+
+void UDampsUEInstance::RegisterCapsuleObject(AActor* pActor, const FTransform& transform, float radius, float height, 
+    pe::Real mass, pe::Real friction, pe::Real restitution, bool fixedDof[6], bool isStatic)
+{
+    if (m_pDampsWorldSim && pActor)
+    {
+        pe::Transform dTransform;
+        dTransform.setOrigin(CoordConvert::FVectorToDampsVector3(transform.GetLocation(), true));
+        dTransform.setBasis(CoordConvert::FQuatToDampsQuat(transform.GetRotation()).toRotationMatrix());
+
+        float scaledRadius = radius * transform.GetScale3D().GetMax(); // Use the maximum scale component
+        float scaledHeight = height * transform.GetScale3D().GetMax(); // Use the maximum scale component
+        scaledRadius *= pe::Real(0.01);
+        scaledHeight *= pe::Real(0.01);
+
+        int sim_id = m_pDampsWorldSim->AddCapsuleObject(scaledRadius, scaledHeight, dTransform, mass, friction, restitution, fixedDof, isStatic);
         m_pActorToWorld[pActor] = sim_id;
     }
 }
@@ -157,6 +180,27 @@ void UDampsUEInstance::UnregisterObject(AActor* pActor)
             int sim_id = m_pActorToWorld[pActor];
             m_pDampsWorldSim->RemoveObject(sim_id);
             m_pActorToWorld.erase(pActor);
+        }
+    }
+}
+
+void UDampsUEInstance::RegisterTank(pe_vehicle::TrackedVehicle* tank)
+{
+    if (m_pDampsWorldSim && tank)
+    {
+        int id = m_pDampsWorldSim->AddTank(tank);
+        m_pTankToWorld[tank] = id;
+    }
+}
+
+void UDampsUEInstance::UnregisterTank(pe_vehicle::TrackedVehicle* tank)
+{
+    if (m_pDampsWorldSim && tank)
+    {
+        if (m_pTankToWorld.find(tank) != m_pTankToWorld.end())
+        {
+            m_pDampsWorldSim->RemoveTank(m_pTankToWorld[tank]);
+            m_pTankToWorld.erase(tank);
         }
     }
 }

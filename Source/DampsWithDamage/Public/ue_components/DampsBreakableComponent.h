@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "DampsBreakableComponent.generated.h"
@@ -9,10 +9,10 @@ class UDampsBreakableComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (ClampMin = "0.0", UIMin = "0.0", DisplayName = "破碎阈值"))
     float BreakThreshold = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damps Object", meta = (DisplayName = "碎块显示碰撞体"))
     bool bShowCollisionMeshAfterBreak = true;
 
 public:

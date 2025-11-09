@@ -137,4 +137,11 @@ void Track::step(pe::Real dt) {
     // nothing to do for now
 }
 
+pe::Transform Track::getSegmentTransform(int index) const {
+    if (index < 0 || index >= PE_I(_segments.size())) {
+        throw std::out_of_range("Invalid track segment index in Track::getSegmentTransform: " + std::to_string(index));
+    }
+    return _segments[index]->getTransform();
+}
+
 } // namespace pe_vehicle

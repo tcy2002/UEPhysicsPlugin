@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "interface/world.h"
+#include "vehicle/tracked_vehicle/tracked_vehicle.h"
 #include "physics/fracture/fracture_solver/simple_fracture_solver.h"
 
 DECLARE_DELEGATE_TwoParams(FOnGetBreakableObjects, pe::Array<int>&, pe::Array<bool>&);
@@ -19,15 +20,20 @@ public:
 	DampsWorldSim();
 	virtual ~DampsWorldSim() = default;
 
-	void update(pe::Real dt);
-    void reset();
+	void Update(pe::Real dt);
+    void Reset();
 
-	int AddConvexMeshObject(const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic = false);
-	int AddBoxObject(const pe::Vector3& extents, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic = false);
-	int AddSphereObject(const pe::Real& radius, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool isKinematic = false);
+	int AddConvexMeshObject(const pe::Mesh& mesh, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic = false);
+	int AddBoxObject(const pe::Vector3& extents, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic = false);
+	int AddSphereObject(const pe::Real& radius, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic = false);
+    int AddCapsuleObject(const pe::Real& radius, const pe::Real& height, const pe::Transform& trans, const pe::Real& mass, const pe::Real& fricCoeff, const pe::Real& restCoeff, bool fixedDof[6], bool isKinematic = false);
 
     bool RemoveObject(int id);
-	void clearAllObjects();
+	void ClearAllObjects();
+
+    int AddTank(pe_vehicle::TrackedVehicle* tank);
+    void RemoveTank(int id);
+    void ClearAllTanks();
 
     void SetObjectTransform(int id, const pe::Transform& transform);
     pe::Transform GetObjectTransform(int id) const;
@@ -48,4 +54,6 @@ private:
     pe::Map<int, pe::Vector3> mRelocVecs; // relocation vectors for each object
     
     pe::Array<pe_physics_fracture::FractureSource> mFractureSources; // fracture sources
+
+    pe::Array<pe_vehicle::TrackedVehicle*> mTanks;
 };

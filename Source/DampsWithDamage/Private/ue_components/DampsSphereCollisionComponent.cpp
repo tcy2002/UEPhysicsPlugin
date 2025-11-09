@@ -9,7 +9,15 @@ void UDampsSphereCollisionComponent::RegisterObjectToDamps(AActor* Owner, UDamps
         FTransform transform = CollisionTransform * Owner->GetTransform();
         bool isStatic = Owner->GetRootComponent()->Mobility == EComponentMobility::Static ||
             Owner->GetRootComponent()->Mobility == EComponentMobility::Stationary;
-        DampsInstance->RegisterSphereObject(Owner, transform, Radius, Mass, Friction, Restitution, isStatic);
+        bool fixedDof[6] = {
+            FixedDof.bFixedXPosition,
+            FixedDof.bFixedZPosition, // Note: Y and Z rotation are swapped
+            FixedDof.bFixedYPosition,
+            FixedDof.bFixedXRotation,
+            FixedDof.bFixedZRotation, // Note: Y and Z rotation are swapped
+            FixedDof.bFixedYRotation
+        };
+        DampsInstance->RegisterSphereObject(Owner, transform, Radius, Mass, Friction, Restitution, fixedDof, isStatic);
     }
 }
 
